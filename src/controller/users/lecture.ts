@@ -1,8 +1,14 @@
 import { LectureModel } from "../../models/shema/lecture";
-import {  NotFound, UnauthorizedError } from "../../Errors";
+import { NotFound, UnauthorizedError } from "../../Errors";
 import { SuccessResponse } from "../../utils/response";
 import { Request, Response } from "express";
 import { BadRequest } from "../../Errors/BadRequest";
+import mongoose from "mongoose";
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id: string): boolean => {
+    return mongoose.Types.ObjectId.isValid(id);
+};
 
 export const getLectures = async (req: Request, res: Response) => {
     if (!req.user) {
@@ -13,16 +19,25 @@ export const getLectures = async (req: Request, res: Response) => {
 
     // Build query object dynamically
     const query: Record<string, any> = {};
-    
+
     if (level) {
-        query.level = Number(level); // Convert string to number
+        if (!isValidObjectId(level as string)) {
+            throw new BadRequest("Invalid level ID format");
+        }
+        query.level = level;
     }
+
     if (department) {
+        if (!isValidObjectId(department as string)) {
+            throw new BadRequest("Invalid department ID format");
+        }
         query.department = department;
     }
 
-    const lectures = await LectureModel.find(query);
-    
+    const lectures = await LectureModel.find(query)
+        .populate("level", "name")      // Populate level with name field
+        .populate("department", "name"); // Populate department with name field
+
     if (lectures.length === 0) {
         throw new NotFound("No lectures found");
     }
@@ -42,18 +57,31 @@ export const getLectureById = async (req: Request, res: Response) => {
         throw new BadRequest("Id is required");
     }
 
+    // Validate lecture ID
+    if (!isValidObjectId(id)) {
+        throw new BadRequest("Invalid lecture ID format");
+    }
+
     // Build query
     const query: Record<string, any> = { _id: id };
-    
+
     if (level) {
-        query.level = Number(level);
+        if (!isValidObjectId(level as string)) {
+            throw new BadRequest("Invalid level ID format");
+        }
+        query.level = level;
     }
+
     if (department) {
+        if (!isValidObjectId(department as string)) {
+            throw new BadRequest("Invalid department ID format");
+        }
         query.department = department;
     }
 
-    // Use findOne instead of findById for multiple conditions
-    const lecture = await LectureModel.findOne(query);
+    const lecture = await LectureModel.findOne(query)
+        .populate("level")
+        .populate("department");
 
     if (!lecture) {
         throw new NotFound("No lecture found");

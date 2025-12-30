@@ -38,63 +38,77 @@ const mongoose_1 = __importStar(require("mongoose"));
 const LectureSchema = new mongoose_1.Schema({
     sub_name: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, "Subject name is required"],
+        trim: true,
     },
-    level: { type: Number, enum: [1, 2, 3, 4, 5], },
-    department: { type: String, enum: ["IT", "CS", "IS", "AI"], },
+    level: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Level", // Capital L for consistency
+        required: [true, "Level is required"],
+    },
+    department: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Department", // Capital D for consistency
+        required: [true, "Department is required"],
+    },
     icon: {
         type: String,
+        default: null,
     },
     num_of_week: {
         type: Number,
-        required: true,
-        min: 1,
-        max: 20
+        required: [true, "Week number is required"],
+        min: [1, "Week number must be at least 1"],
+        max: [20, "Week number cannot exceed 20"],
     },
     title: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, "Title is required"],
+        trim: true,
     },
-    pdfs: [{
+    pdfs: [
+        {
             name: {
                 type: String,
-                required: true
+                required: true,
             },
             url: {
                 type: String,
-                required: true
+                required: true,
             },
             uploadDate: {
                 type: Date,
-                default: Date.now
-            }
-        }],
+                default: Date.now,
+            },
+        },
+    ],
     video: {
         name: {
             type: String,
-            default: null
+            default: null,
         },
         url: {
             type: String,
-            default: null
+            default: null,
         },
         duration: {
-            type: Number, // مدة الفيديو بالثواني
-            default: 0
+            type: Number,
+            default: 0,
         },
         quality: {
             type: String,
-            enum: ['360p', '480p', '720p', '1080p', '4K'],
-            default: '720p'
+            enum: ["360p", "480p", "720p", "1080p", "4K"],
+            default: "720p",
         },
         uploadDate: {
             type: Date,
-            default: Date.now
-        }
-    }
+            default: Date.now,
+        },
+    },
 }, {
-    timestamps: true // يضيف createdAt و updatedAt تلقائياً
+    timestamps: true,
 });
-exports.LectureModel = mongoose_1.default.model('Lecture', LectureSchema);
+// Add indexes for faster queries
+LectureSchema.index({ level: 1, department: 1 });
+LectureSchema.index({ sub_name: 1 });
+exports.LectureModel = mongoose_1.default.model("Lecture", LectureSchema);
