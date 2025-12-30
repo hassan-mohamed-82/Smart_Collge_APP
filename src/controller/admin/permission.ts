@@ -1,8 +1,8 @@
 // controllers/role/role.controller.ts
 import { Request, Response } from "express";
 import { RoleModel } from "../../models/shema/permission";
-import { MODULES, ACTIONS, ModuleType, ActionType } from "../../types/constant";
-import {   NotFound, UnauthorizedError } from "../../Errors";
+import { MODULES, ACTIONS, ModuleType, ActionType, IPermission } from "../../types/constant";
+import { NotFound, UnauthorizedError } from "../../Errors";
 import { SuccessResponse } from "../../utils/response";
 import mongoose from "mongoose";
 import { BadRequest } from "../../Errors/BadRequest";
@@ -12,7 +12,7 @@ const isValidObjectId = (id: string): boolean => {
 };
 
 // ----------------------------------------------------------
-// GET AVAILABLE PERMISSIONS - جلب الموديولات والأكشنز المتاحة
+// GET AVAILABLE PERMISSIONS
 // ----------------------------------------------------------
 export const getAvailablePermissions = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -24,14 +24,13 @@ export const getAvailablePermissions = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// CREATE ROLE - إنشاء Role جديد
+// CREATE ROLE
 // ----------------------------------------------------------
 export const createRole = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
 
     const { name, description, permissions } = req.body;
 
-    // Validation
     if (!name) {
         throw new BadRequest("Role name is required");
     }
@@ -40,13 +39,11 @@ export const createRole = async (req: Request, res: Response) => {
         throw new BadRequest("Permissions array is required");
     }
 
-    // Check if role already exists
     const existingRole = await RoleModel.findOne({ name: name.trim() });
     if (existingRole) {
         throw new BadRequest("Role with this name already exists");
     }
 
-    // Validate permissions structure
     const validatedPermissions = validatePermissions(permissions);
 
     const role = await RoleModel.create({
@@ -62,7 +59,7 @@ export const createRole = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// GET ALL ROLES - جلب كل الـ Roles
+// GET ALL ROLES
 // ----------------------------------------------------------
 export const getRoles = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -81,7 +78,7 @@ export const getRoles = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// GET ROLE BY ID - جلب Role بالـ ID
+// GET ROLE BY ID
 // ----------------------------------------------------------
 export const getRoleById = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -102,7 +99,7 @@ export const getRoleById = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// UPDATE ROLE - تحديث Role
+// UPDATE ROLE
 // ----------------------------------------------------------
 export const updateRole = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -120,7 +117,6 @@ export const updateRole = async (req: Request, res: Response) => {
         throw new NotFound("Role not found");
     }
 
-    // Check if new name already exists (if name is being changed)
     if (name && name.trim() !== role.name) {
         const existingRole = await RoleModel.findOne({ name: name.trim() });
         if (existingRole) {
@@ -150,7 +146,7 @@ export const updateRole = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// DELETE ROLE - حذف Role
+// DELETE ROLE
 // ----------------------------------------------------------
 export const deleteRole = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -174,7 +170,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// ADD MODULE PERMISSION - إضافة صلاحية لـ module معين
+// ADD MODULE PERMISSION
 // ----------------------------------------------------------
 export const addModulePermission = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -190,13 +186,11 @@ export const addModulePermission = async (req: Request, res: Response) => {
         throw new BadRequest("Module and actions array are required");
     }
 
-    // Validate module
-    if (!MODULES.includes(module as any)) {
+    if (!MODULES.includes(module as ModuleType)) {
         throw new BadRequest(`Invalid module. Available: ${MODULES.join(", ")}`);
     }
 
-    // Validate actions
-    const validActions = actions.filter(a => ACTIONS.includes(a as any)) as ActionType[];
+    const validActions = actions.filter((a: string) => ACTIONS.includes(a as ActionType)) as ActionType[];
     if (validActions.length === 0) {
         throw new BadRequest(`Invalid actions. Available: ${ACTIONS.join(", ")}`);
     }
@@ -207,14 +201,12 @@ export const addModulePermission = async (req: Request, res: Response) => {
         throw new NotFound("Role not found");
     }
 
-    // Check if module already exists
-    const existingIndex = role.permissions.findIndex(p => p.module === module);
+    // ✅ أضف الـ type هنا
+    const existingIndex = role.permissions.findIndex((p: IPermission) => p.module === module);
 
     if (existingIndex > -1) {
-        // Update existing module actions
         role.permissions[existingIndex].actions = validActions;
     } else {
-        // Add new module permission
         role.permissions.push({
             module: module as ModuleType,
             actions: validActions
@@ -230,7 +222,7 @@ export const addModulePermission = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// REMOVE MODULE PERMISSION - حذف صلاحية module معين
+// REMOVE MODULE PERMISSION
 // ----------------------------------------------------------
 export const removeModulePermission = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -251,7 +243,8 @@ export const removeModulePermission = async (req: Request, res: Response) => {
         throw new NotFound("Role not found");
     }
 
-    const moduleIndex = role.permissions.findIndex(p => p.module === module);
+    // ✅ أضف الـ type هنا
+    const moduleIndex = role.permissions.findIndex((p: IPermission) => p.module === module);
 
     if (moduleIndex === -1) {
         throw new NotFound("Module permission not found in this role");
@@ -267,7 +260,7 @@ export const removeModulePermission = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// TOGGLE ROLE STATUS - تفعيل/تعطيل Role
+// TOGGLE ROLE STATUS
 // ----------------------------------------------------------
 export const toggleRoleStatus = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
@@ -296,17 +289,17 @@ export const toggleRoleStatus = async (req: Request, res: Response) => {
 // ----------------------------------------------------------
 // HELPER: Validate Permissions
 // ----------------------------------------------------------
-const validatePermissions = (permissions: any[]): { module: ModuleType; actions: ActionType[] }[] => {
-    return permissions.map(perm => {
+const validatePermissions = (permissions: any[]): IPermission[] => {
+    return permissions.map((perm: any) => {
         if (!perm.module || !perm.actions || !Array.isArray(perm.actions)) {
             throw new BadRequest("Each permission must have module and actions array");
         }
 
-        if (!MODULES.includes(perm.module as any)) {
+        if (!MODULES.includes(perm.module as ModuleType)) {
             throw new BadRequest(`Invalid module: ${perm.module}. Available: ${MODULES.join(", ")}`);
         }
 
-        const validActions = perm.actions.filter((a: string) => ACTIONS.includes(a as any));
+        const validActions = perm.actions.filter((a: string) => ACTIONS.includes(a as ActionType));
         if (validActions.length === 0) {
             throw new BadRequest(`Invalid actions for ${perm.module}. Available: ${ACTIONS.join(", ")}`);
         }

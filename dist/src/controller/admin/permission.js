@@ -14,7 +14,7 @@ const isValidObjectId = (id) => {
     return mongoose_1.default.Types.ObjectId.isValid(id);
 };
 // ----------------------------------------------------------
-// GET AVAILABLE PERMISSIONS - جلب الموديولات والأكشنز المتاحة
+// GET AVAILABLE PERMISSIONS
 // ----------------------------------------------------------
 const getAvailablePermissions = async (req, res) => {
     if (!req.user)
@@ -26,25 +26,22 @@ const getAvailablePermissions = async (req, res) => {
 };
 exports.getAvailablePermissions = getAvailablePermissions;
 // ----------------------------------------------------------
-// CREATE ROLE - إنشاء Role جديد
+// CREATE ROLE
 // ----------------------------------------------------------
 const createRole = async (req, res) => {
     if (!req.user)
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { name, description, permissions } = req.body;
-    // Validation
     if (!name) {
         throw new BadRequest_1.BadRequest("Role name is required");
     }
     if (!permissions || !Array.isArray(permissions) || permissions.length === 0) {
         throw new BadRequest_1.BadRequest("Permissions array is required");
     }
-    // Check if role already exists
     const existingRole = await permission_1.RoleModel.findOne({ name: name.trim() });
     if (existingRole) {
         throw new BadRequest_1.BadRequest("Role with this name already exists");
     }
-    // Validate permissions structure
     const validatedPermissions = validatePermissions(permissions);
     const role = await permission_1.RoleModel.create({
         name: name.trim(),
@@ -58,7 +55,7 @@ const createRole = async (req, res) => {
 };
 exports.createRole = createRole;
 // ----------------------------------------------------------
-// GET ALL ROLES - جلب كل الـ Roles
+// GET ALL ROLES
 // ----------------------------------------------------------
 const getRoles = async (req, res) => {
     if (!req.user)
@@ -73,7 +70,7 @@ const getRoles = async (req, res) => {
 };
 exports.getRoles = getRoles;
 // ----------------------------------------------------------
-// GET ROLE BY ID - جلب Role بالـ ID
+// GET ROLE BY ID
 // ----------------------------------------------------------
 const getRoleById = async (req, res) => {
     if (!req.user)
@@ -90,7 +87,7 @@ const getRoleById = async (req, res) => {
 };
 exports.getRoleById = getRoleById;
 // ----------------------------------------------------------
-// UPDATE ROLE - تحديث Role
+// UPDATE ROLE
 // ----------------------------------------------------------
 const updateRole = async (req, res) => {
     if (!req.user)
@@ -104,7 +101,6 @@ const updateRole = async (req, res) => {
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
-    // Check if new name already exists (if name is being changed)
     if (name && name.trim() !== role.name) {
         const existingRole = await permission_1.RoleModel.findOne({ name: name.trim() });
         if (existingRole) {
@@ -129,7 +125,7 @@ const updateRole = async (req, res) => {
 };
 exports.updateRole = updateRole;
 // ----------------------------------------------------------
-// DELETE ROLE - حذف Role
+// DELETE ROLE
 // ----------------------------------------------------------
 const deleteRole = async (req, res) => {
     if (!req.user)
@@ -149,7 +145,7 @@ const deleteRole = async (req, res) => {
 };
 exports.deleteRole = deleteRole;
 // ----------------------------------------------------------
-// ADD MODULE PERMISSION - إضافة صلاحية لـ module معين
+// ADD MODULE PERMISSION
 // ----------------------------------------------------------
 const addModulePermission = async (req, res) => {
     if (!req.user)
@@ -162,12 +158,10 @@ const addModulePermission = async (req, res) => {
     if (!module || !actions || !Array.isArray(actions)) {
         throw new BadRequest_1.BadRequest("Module and actions array are required");
     }
-    // Validate module
     if (!constant_1.MODULES.includes(module)) {
         throw new BadRequest_1.BadRequest(`Invalid module. Available: ${constant_1.MODULES.join(", ")}`);
     }
-    // Validate actions
-    const validActions = actions.filter(a => constant_1.ACTIONS.includes(a));
+    const validActions = actions.filter((a) => constant_1.ACTIONS.includes(a));
     if (validActions.length === 0) {
         throw new BadRequest_1.BadRequest(`Invalid actions. Available: ${constant_1.ACTIONS.join(", ")}`);
     }
@@ -175,14 +169,12 @@ const addModulePermission = async (req, res) => {
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
-    // Check if module already exists
-    const existingIndex = role.permissions.findIndex(p => p.module === module);
+    // ✅ أضف الـ type هنا
+    const existingIndex = role.permissions.findIndex((p) => p.module === module);
     if (existingIndex > -1) {
-        // Update existing module actions
         role.permissions[existingIndex].actions = validActions;
     }
     else {
-        // Add new module permission
         role.permissions.push({
             module: module,
             actions: validActions
@@ -196,7 +188,7 @@ const addModulePermission = async (req, res) => {
 };
 exports.addModulePermission = addModulePermission;
 // ----------------------------------------------------------
-// REMOVE MODULE PERMISSION - حذف صلاحية module معين
+// REMOVE MODULE PERMISSION
 // ----------------------------------------------------------
 const removeModulePermission = async (req, res) => {
     if (!req.user)
@@ -212,7 +204,8 @@ const removeModulePermission = async (req, res) => {
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
-    const moduleIndex = role.permissions.findIndex(p => p.module === module);
+    // ✅ أضف الـ type هنا
+    const moduleIndex = role.permissions.findIndex((p) => p.module === module);
     if (moduleIndex === -1) {
         throw new Errors_1.NotFound("Module permission not found in this role");
     }
@@ -225,7 +218,7 @@ const removeModulePermission = async (req, res) => {
 };
 exports.removeModulePermission = removeModulePermission;
 // ----------------------------------------------------------
-// TOGGLE ROLE STATUS - تفعيل/تعطيل Role
+// TOGGLE ROLE STATUS
 // ----------------------------------------------------------
 const toggleRoleStatus = async (req, res) => {
     if (!req.user)
@@ -250,7 +243,7 @@ exports.toggleRoleStatus = toggleRoleStatus;
 // HELPER: Validate Permissions
 // ----------------------------------------------------------
 const validatePermissions = (permissions) => {
-    return permissions.map(perm => {
+    return permissions.map((perm) => {
         if (!perm.module || !perm.actions || !Array.isArray(perm.actions)) {
             throw new BadRequest_1.BadRequest("Each permission must have module and actions array");
         }

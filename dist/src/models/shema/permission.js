@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoleModel = void 0;
-// models/schema/permission.ts
+// models/schema/role.schema.ts (الملف الجديد - خليه هو بس)
 const mongoose_1 = __importStar(require("mongoose"));
 const constant_1 = require("../../types/constant");
 const PermissionSchema = new mongoose_1.Schema({
@@ -51,12 +51,13 @@ const PermissionSchema = new mongoose_1.Schema({
 const RoleSchema = new mongoose_1.Schema({
     name: {
         type: String,
-        required: true,
+        required: [true, "Role name is required"],
         unique: true,
         trim: true
     },
     description: {
-        type: String
+        type: String,
+        trim: true
     },
     permissions: [PermissionSchema],
     isActive: {
@@ -64,4 +65,5 @@ const RoleSchema = new mongoose_1.Schema({
         default: true
     }
 }, { timestamps: true });
-exports.RoleModel = mongoose_1.default.model("Role", RoleSchema);
+// ✅ تأكد إن الموديل مش موجود قبل ما تعمله
+exports.RoleModel = mongoose_1.default.models.Role || mongoose_1.default.model("Role", RoleSchema);
