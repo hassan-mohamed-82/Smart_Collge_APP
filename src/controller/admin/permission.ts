@@ -78,18 +78,45 @@ export const getRoles = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// GET ROLE BY ID
+// GET ROLE BY ID OR NAME
 // ----------------------------------------------------------
 export const getRoleById = async (req: Request, res: Response) => {
     if (!req.user) throw new UnauthorizedError("Authentication required");
 
     const { id } = req.params;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
-    const role = await RoleModel.findById(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findById(id);
+    } else {
+        role = await RoleModel.findOne({ name: id });
+    }
+
+    if (!role) {
+        throw new NotFound("Role not found");
+    }
+
+    SuccessResponse(res, { role });
+};
+
+// ----------------------------------------------------------
+// GET ROLE BY NAME
+// ----------------------------------------------------------
+export const getRoleByName = async (req: Request, res: Response) => {
+    if (!req.user) throw new UnauthorizedError("Authentication required");
+
+    const { name } = req.params;
+
+    if (!name) {
+        throw new BadRequest("Role name is required");
+    }
+
+    const role = await RoleModel.findOne({ name: name });
 
     if (!role) {
         throw new NotFound("Role not found");
@@ -107,11 +134,17 @@ export const updateRole = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, permissions, isActive } = req.body;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
-    const role = await RoleModel.findById(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findById(id);
+    } else {
+        role = await RoleModel.findOne({ name: id });
+    }
 
     if (!role) {
         throw new NotFound("Role not found");
@@ -153,11 +186,17 @@ export const deleteRole = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
-    const role = await RoleModel.findByIdAndDelete(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findByIdAndDelete(id);
+    } else {
+        role = await RoleModel.findOneAndDelete({ name: id });
+    }
 
     if (!role) {
         throw new NotFound("Role not found");
@@ -178,8 +217,8 @@ export const addModulePermission = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { module, actions } = req.body;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
     if (!module || !actions || !Array.isArray(actions)) {
@@ -195,13 +234,18 @@ export const addModulePermission = async (req: Request, res: Response) => {
         throw new BadRequest(`Invalid actions. Available: ${ACTIONS.join(", ")}`);
     }
 
-    const role = await RoleModel.findById(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findById(id);
+    } else {
+        role = await RoleModel.findOne({ name: id });
+    }
 
     if (!role) {
         throw new NotFound("Role not found");
     }
 
-    // ✅ أضف الـ type هنا
     const existingIndex = role.permissions.findIndex((p: IPermission) => p.module === module);
 
     if (existingIndex > -1) {
@@ -229,21 +273,26 @@ export const removeModulePermission = async (req: Request, res: Response) => {
 
     const { id, module } = req.params;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
     if (!module) {
         throw new BadRequest("Module is required");
     }
 
-    const role = await RoleModel.findById(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findById(id);
+    } else {
+        role = await RoleModel.findOne({ name: id });
+    }
 
     if (!role) {
         throw new NotFound("Role not found");
     }
 
-    // ✅ أضف الـ type هنا
     const moduleIndex = role.permissions.findIndex((p: IPermission) => p.module === module);
 
     if (moduleIndex === -1) {
@@ -267,11 +316,17 @@ export const toggleRoleStatus = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest("Role ID or name is required");
     }
 
-    const role = await RoleModel.findById(id);
+    let role;
+
+    if (isValidObjectId(id)) {
+        role = await RoleModel.findById(id);
+    } else {
+        role = await RoleModel.findOne({ name: id });
+    }
 
     if (!role) {
         throw new NotFound("Role not found");
@@ -284,6 +339,32 @@ export const toggleRoleStatus = async (req: Request, res: Response) => {
         message: `Role ${role.isActive ? "activated" : "deactivated"} successfully`,
         role
     });
+};
+
+// ----------------------------------------------------------
+// SEARCH ROLES
+// ----------------------------------------------------------
+export const searchRoles = async (req: Request, res: Response) => {
+    if (!req.user) throw new UnauthorizedError("Authentication required");
+
+    const { q } = req.query;
+
+    if (!q) {
+        throw new BadRequest("Search query is required");
+    }
+
+    const roles = await RoleModel.find({
+        $or: [
+            { name: { $regex: q, $options: "i" } },
+            { description: { $regex: q, $options: "i" } }
+        ]
+    }).sort({ createdAt: -1 });
+
+    if (roles.length === 0) {
+        throw new NotFound("No roles found");
+    }
+
+    SuccessResponse(res, { roles });
 };
 
 // ----------------------------------------------------------

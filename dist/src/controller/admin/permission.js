@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleRoleStatus = exports.removeModulePermission = exports.addModulePermission = exports.deleteRole = exports.updateRole = exports.getRoleById = exports.getRoles = exports.createRole = exports.getAvailablePermissions = void 0;
+exports.searchRoles = exports.toggleRoleStatus = exports.removeModulePermission = exports.addModulePermission = exports.deleteRole = exports.updateRole = exports.getRoleByName = exports.getRoleById = exports.getRoles = exports.createRole = exports.getAvailablePermissions = void 0;
 const permission_1 = require("../../models/shema/permission");
 const constant_1 = require("../../types/constant");
 const Errors_1 = require("../../Errors");
@@ -70,22 +70,45 @@ const getRoles = async (req, res) => {
 };
 exports.getRoles = getRoles;
 // ----------------------------------------------------------
-// GET ROLE BY ID
+// GET ROLE BY ID OR NAME
 // ----------------------------------------------------------
 const getRoleById = async (req, res) => {
     if (!req.user)
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id } = req.params;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
-    const role = await permission_1.RoleModel.findById(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findById(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOne({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
     (0, response_1.SuccessResponse)(res, { role });
 };
 exports.getRoleById = getRoleById;
+// ----------------------------------------------------------
+// GET ROLE BY NAME
+// ----------------------------------------------------------
+const getRoleByName = async (req, res) => {
+    if (!req.user)
+        throw new Errors_1.UnauthorizedError("Authentication required");
+    const { name } = req.params;
+    if (!name) {
+        throw new BadRequest_1.BadRequest("Role name is required");
+    }
+    const role = await permission_1.RoleModel.findOne({ name: name });
+    if (!role) {
+        throw new Errors_1.NotFound("Role not found");
+    }
+    (0, response_1.SuccessResponse)(res, { role });
+};
+exports.getRoleByName = getRoleByName;
 // ----------------------------------------------------------
 // UPDATE ROLE
 // ----------------------------------------------------------
@@ -94,10 +117,16 @@ const updateRole = async (req, res) => {
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id } = req.params;
     const { name, description, permissions, isActive } = req.body;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
-    const role = await permission_1.RoleModel.findById(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findById(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOne({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
@@ -131,10 +160,16 @@ const deleteRole = async (req, res) => {
     if (!req.user)
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id } = req.params;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
-    const role = await permission_1.RoleModel.findByIdAndDelete(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findByIdAndDelete(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOneAndDelete({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
@@ -152,8 +187,8 @@ const addModulePermission = async (req, res) => {
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id } = req.params;
     const { module, actions } = req.body;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
     if (!module || !actions || !Array.isArray(actions)) {
         throw new BadRequest_1.BadRequest("Module and actions array are required");
@@ -165,11 +200,16 @@ const addModulePermission = async (req, res) => {
     if (validActions.length === 0) {
         throw new BadRequest_1.BadRequest(`Invalid actions. Available: ${constant_1.ACTIONS.join(", ")}`);
     }
-    const role = await permission_1.RoleModel.findById(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findById(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOne({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
-    // ✅ أضف الـ type هنا
     const existingIndex = role.permissions.findIndex((p) => p.module === module);
     if (existingIndex > -1) {
         role.permissions[existingIndex].actions = validActions;
@@ -194,17 +234,22 @@ const removeModulePermission = async (req, res) => {
     if (!req.user)
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id, module } = req.params;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
     if (!module) {
         throw new BadRequest_1.BadRequest("Module is required");
     }
-    const role = await permission_1.RoleModel.findById(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findById(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOne({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
-    // ✅ أضف الـ type هنا
     const moduleIndex = role.permissions.findIndex((p) => p.module === module);
     if (moduleIndex === -1) {
         throw new Errors_1.NotFound("Module permission not found in this role");
@@ -224,10 +269,16 @@ const toggleRoleStatus = async (req, res) => {
     if (!req.user)
         throw new Errors_1.UnauthorizedError("Authentication required");
     const { id } = req.params;
-    if (!id || !isValidObjectId(id)) {
-        throw new BadRequest_1.BadRequest("Valid role ID is required");
+    if (!id) {
+        throw new BadRequest_1.BadRequest("Role ID or name is required");
     }
-    const role = await permission_1.RoleModel.findById(id);
+    let role;
+    if (isValidObjectId(id)) {
+        role = await permission_1.RoleModel.findById(id);
+    }
+    else {
+        role = await permission_1.RoleModel.findOne({ name: id });
+    }
     if (!role) {
         throw new Errors_1.NotFound("Role not found");
     }
@@ -239,6 +290,28 @@ const toggleRoleStatus = async (req, res) => {
     });
 };
 exports.toggleRoleStatus = toggleRoleStatus;
+// ----------------------------------------------------------
+// SEARCH ROLES
+// ----------------------------------------------------------
+const searchRoles = async (req, res) => {
+    if (!req.user)
+        throw new Errors_1.UnauthorizedError("Authentication required");
+    const { q } = req.query;
+    if (!q) {
+        throw new BadRequest_1.BadRequest("Search query is required");
+    }
+    const roles = await permission_1.RoleModel.find({
+        $or: [
+            { name: { $regex: q, $options: "i" } },
+            { description: { $regex: q, $options: "i" } }
+        ]
+    }).sort({ createdAt: -1 });
+    if (roles.length === 0) {
+        throw new Errors_1.NotFound("No roles found");
+    }
+    (0, response_1.SuccessResponse)(res, { roles });
+};
+exports.searchRoles = searchRoles;
 // ----------------------------------------------------------
 // HELPER: Validate Permissions
 // ----------------------------------------------------------
