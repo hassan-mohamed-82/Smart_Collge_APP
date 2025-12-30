@@ -27,3 +27,21 @@ export const getNewsById =async (req: Request, res: Response) => {
 SuccessResponse(res,news)
 };
   
+export const searchNews = async (req: Request, res: Response) => {
+    if (!req.user) throw new UnauthorizedError("Not authorized to access this route");
+
+    const { q } = req.query;
+
+    if (!q) throw new BadRequest("Please enter a search term");
+
+    const news = await NewsModel.find({
+        $or: [
+            { title: { $regex: q, $options: "i" } },
+            { content: { $regex: q, $options: "i" } }
+        ]
+    });
+
+    if (news.length === 0) throw new NotFound("No news found");
+
+    SuccessResponse(res, news);
+};

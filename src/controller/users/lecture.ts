@@ -89,3 +89,31 @@ export const getLectureById = async (req: Request, res: Response) => {
 
     SuccessResponse(res, lecture);
 };
+
+
+export const searchLectures = async (req: Request, res: Response) => {
+    if (!req.user) {
+        throw new UnauthorizedError("Not authorized to access this route");
+    }
+
+    const { q } = req.query;
+
+    if (!q) {
+        throw new NotFound("Please enter a search term");
+    }
+
+    const lectures = await LectureModel.find({
+        $or: [
+            { sub_name: { $regex: q, $options: "i" } },
+            { title: { $regex: q, $options: "i" } }
+        ]
+    })
+    .populate("level", "name")
+    .populate("department", "name");
+
+    if (lectures.length === 0) {
+        throw new NotFound("No lectures found");
+    }
+
+    SuccessResponse(res, lectures);
+};

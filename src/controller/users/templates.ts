@@ -23,3 +23,34 @@ export const getTemplateById = async (req: Request, res: Response) => {
     return SuccessResponse(res, { template });
 };
  
+
+export const searchTemplates = async (req: Request, res: Response) => {
+    if (!req.user) throw new UnauthorizedError("Authentication required");
+
+    const { q, category } = req.query;
+
+    if (!q) throw new BadRequest("Please enter a search term");
+
+    // Build query
+    const query: Record<string, any> = {
+        $or: [
+            { title: { $regex: q, $options: "i" } },
+            { content: { $regex: q, $options: "i" } },
+            { companyname: { $regex: q, $options: "i" } },
+            { location: { $regex: q, $options: "i" } }
+        ]
+    };
+
+    // Filter by category if provided
+    if (category) {
+        query.category = category;
+    }
+
+    const templates = await TemplateModel.find(query);
+
+    if (templates.length === 0) {
+        throw new NotFound("No templates found");
+    }
+
+    return SuccessResponse(res, { templates });
+};
