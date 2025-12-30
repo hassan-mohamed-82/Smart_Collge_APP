@@ -3,7 +3,7 @@ import authRouter from "./auth";
 import { authenticated } from "../../middlewares/authenticated";
 import { authorizeRoles } from "../../middlewares/authorized";
 import notificationRouter from "./notification"
-import rolesRouter from"./roles";
+import rolesRouter from"./permission";
 import adminRouter from "./admin";
 import NewsRouter from "./News";
 import TempletsRouter from "./templates"
