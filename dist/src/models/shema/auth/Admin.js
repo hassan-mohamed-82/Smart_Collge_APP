@@ -33,26 +33,20 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RoleModel = exports.ActionModel = exports.AdminModel = void 0;
+exports.AdminModel = void 0;
+// models/shema/auth/Admin.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const adminSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     hashedPassword: { type: String, required: true },
     imagePath: { type: String },
-    role: { type: String, enum: ["SuperAdmin", "Admin"] },
-    roleId: { type: mongoose_1.default.SchemaTypes.ObjectId, ref: "Role", default: null },
+    // ✅ استخدم ObjectId للـ role
+    role: { type: mongoose_1.default.SchemaTypes.ObjectId, ref: "Role", default: null },
+    // ✅ أضف ده للـ SuperAdmin
+    roles: { type: String, enum: ["Admin", "SuperAdmin"] },
     isOnline: { type: Boolean, default: false },
     lastSeen: { type: Date, default: Date.now },
     fcmtoken: { type: String, default: null },
 }, { timestamps: true });
 exports.AdminModel = mongoose_1.default.model("Admin", adminSchema);
-const actionSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, enum: ["create", "update", "delete", "read"] },
-});
-exports.ActionModel = mongoose_1.default.model("action", actionSchema);
-const roleSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, unique: true },
-    actionIds: [{ type: mongoose_1.default.SchemaTypes.ObjectId, ref: "action" }],
-}, { timestamps: true });
-exports.RoleModel = mongoose_1.default.model("Role", roleSchema);

@@ -1,4 +1,4 @@
-// models/schema/role.schema.ts (الملف الجديد - خليه هو بس)
+// models/schema/role.schema.ts
 import mongoose, { Schema, Document } from "mongoose";
 import { MODULES, ACTIONS, IPermission } from "../../types/constant";
 
@@ -11,18 +11,28 @@ export interface IRoleDocument extends Document {
     updatedAt: Date;
 }
 
+// 1. Action Schema (Sub-document)
+// شيلنا الـ id اليدوي، وشيلنا { _id: false } عشان مونجو يعمل ID تلقائي
+const ActionItemSchema = new Schema({
+    name: {
+        type: String,
+        enum: ACTIONS,
+        required: true
+    }
+});
+
+// 2. Permission Schema (Sub-document)
 const PermissionSchema = new Schema<IPermission>({
     module: {
         type: String,
         enum: MODULES,
         required: true
     },
-    actions: [{
-        type: String,
-        enum: ACTIONS
-    }]
+    // هنا الـ actions عبارة عن مصفوفة من الكائنات (التي تحتوي على name و _id تلقائي)
+    actions: [ActionItemSchema] 
 }, { _id: false });
 
+// 3. Role Schema (Main Document)
 const RoleSchema = new Schema<IRoleDocument>({
     name: {
         type: String,
@@ -41,5 +51,4 @@ const RoleSchema = new Schema<IRoleDocument>({
     }
 }, { timestamps: true });
 
-// ✅ تأكد إن الموديل مش موجود قبل ما تعمله
 export const RoleModel = mongoose.models.Role || mongoose.model<IRoleDocument>("Role", RoleSchema);

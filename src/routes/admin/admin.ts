@@ -1,21 +1,25 @@
+// routes/admin.routes.ts
 import { Router } from "express";
 import {
-  createAdmin,
-  getAdmins,
-  getAdminById,
-  updateAdmin,
-  deleteAdmin,
-} from "../../controller/admin/admin";
+    getAdmins,
+    getAdminById,
+    updateAdmin,
+    deleteAdmin,
+    createAdmin,
 
-import { authenticated } from "../../middlewares/authenticated";
+} from "../../controller/admin/admin";
+import { authenticate } from "../../middlewares/authenticated";
+import { checkPermission } from "../../middlewares/checkpermission";
+import { catchAsync } from "../../utils/catchAsync";
 
 const router = Router();
 
-// 🟢 SuperAdmin only
-router.post("/", createAdmin);
-router.get("/", getAdmins);
-router.get("/:id", getAdminById);
-router.put("/:id", updateAdmin);
-router.delete("/:id", deleteAdmin);
+
+// Admin CRUD
+router.get("/", authenticate, checkPermission("users", "read"), catchAsync(getAdmins));
+router.get("/:id", authenticate, checkPermission("users", "read"), catchAsync(getAdminById));
+router.post("/", authenticate, checkPermission("users", "create"), catchAsync(createAdmin));
+router.put("/:id", authenticate, checkPermission("users", "update"), catchAsync(updateAdmin));
+router.delete("/:id", authenticate, checkPermission("users", "delete"), catchAsync(deleteAdmin));
 
 export default router;

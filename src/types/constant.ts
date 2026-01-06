@@ -13,6 +13,7 @@ export const MODULES = [
     "levels",
     "notifications",
     "chats",
+    "admins",
     "rooms",
     "roles"
 ] as const;

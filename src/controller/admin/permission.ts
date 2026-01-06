@@ -1,6 +1,6 @@
 // controllers/role/role.controller.ts
 import { Request, Response } from "express";
-import { RoleModel } from "../../models/shema/permission";
+import { RoleModel } from "../../models/shema/permission"; // تأكد من المسار الصحيح
 import { MODULES, ACTIONS, ModuleType, ActionType, IPermission } from "../../types/constant";
 import { NotFound, UnauthorizedError } from "../../Errors";
 import { SuccessResponse } from "../../utils/response";
@@ -44,6 +44,7 @@ export const createRole = async (req: Request, res: Response) => {
         throw new BadRequest("Role with this name already exists");
     }
 
+    // هنا بيتم استدعاء دالة الفحص المعدلة
     const validatedPermissions = validatePermissions(permissions);
 
     const role = await RoleModel.create({
@@ -163,6 +164,7 @@ export const updateRole = async (req: Request, res: Response) => {
     }
 
     if (permissions && Array.isArray(permissions)) {
+        // استخدام الدالة المعدلة
         role.permissions = validatePermissions(permissions);
     }
 
@@ -229,7 +231,19 @@ export const addModulePermission = async (req: Request, res: Response) => {
         throw new BadRequest(`Invalid module. Available: ${MODULES.join(", ")}`);
     }
 
-    const validActions = actions.filter((a: string) => ACTIONS.includes(a as ActionType)) as ActionType[];
+    // --- بداية التعديل: التعامل مع الـ actions كـ Objects ---
+    const validActions = actions
+        .map((a: any) => {
+            // نتحقق لو اللي جاي string ولا object
+            const actionName = typeof a === 'string' ? a : a?.name;
+            if (ACTIONS.includes(actionName)) {
+                return { name: actionName }; // بنرجع Object عشان الـ Schema
+            }
+            return null;
+        })
+        .filter((a: any) => a !== null);
+    // --- نهاية التعديل ---
+
     if (validActions.length === 0) {
         throw new BadRequest(`Invalid actions. Available: ${ACTIONS.join(", ")}`);
     }
@@ -368,7 +382,7 @@ export const searchRoles = async (req: Request, res: Response) => {
 };
 
 // ----------------------------------------------------------
-// HELPER: Validate Permissions
+// HELPER: Validate Permissions (Updated)
 // ----------------------------------------------------------
 const validatePermissions = (permissions: any[]): IPermission[] => {
     return permissions.map((perm: any) => {
@@ -380,14 +394,27 @@ const validatePermissions = (permissions: any[]): IPermission[] => {
             throw new BadRequest(`Invalid module: ${perm.module}. Available: ${MODULES.join(", ")}`);
         }
 
-        const validActions = perm.actions.filter((a: string) => ACTIONS.includes(a as ActionType));
+        // --- بداية التعديل: التعامل مع Objects واستخراج الاسم ---
+        const validActions = perm.actions
+            .map((a: any) => {
+                // نتحقق لو اللي جاي string ولا object
+                const actionName = typeof a === 'string' ? a : a?.name;
+                
+                if (ACTIONS.includes(actionName)) {
+                    return { name: actionName }; // بنرجع Object عشان الـ Schema
+                }
+                return null;
+            })
+            .filter((a: any) => a !== null);
+        // --- نهاية التعديل ---
+
         if (validActions.length === 0) {
             throw new BadRequest(`Invalid actions for ${perm.module}. Available: ${ACTIONS.join(", ")}`);
         }
 
         return {
             module: perm.module as ModuleType,
-            actions: validActions as ActionType[]
+            actions: validActions // دي دلوقتي Array of Objects
         };
     });
 };

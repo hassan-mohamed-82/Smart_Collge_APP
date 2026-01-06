@@ -34,20 +34,29 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoleModel = void 0;
-// models/schema/role.schema.ts (الملف الجديد - خليه هو بس)
+// models/schema/role.schema.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const constant_1 = require("../../types/constant");
+// 1. Action Schema (Sub-document)
+// شيلنا الـ id اليدوي، وشيلنا { _id: false } عشان مونجو يعمل ID تلقائي
+const ActionItemSchema = new mongoose_1.Schema({
+    name: {
+        type: String,
+        enum: constant_1.ACTIONS,
+        required: true
+    }
+});
+// 2. Permission Schema (Sub-document)
 const PermissionSchema = new mongoose_1.Schema({
     module: {
         type: String,
         enum: constant_1.MODULES,
         required: true
     },
-    actions: [{
-            type: String,
-            enum: constant_1.ACTIONS
-        }]
+    // هنا الـ actions عبارة عن مصفوفة من الكائنات (التي تحتوي على name و _id تلقائي)
+    actions: [ActionItemSchema]
 }, { _id: false });
+// 3. Role Schema (Main Document)
 const RoleSchema = new mongoose_1.Schema({
     name: {
         type: String,
@@ -65,5 +74,4 @@ const RoleSchema = new mongoose_1.Schema({
         default: true
     }
 }, { timestamps: true });
-// ✅ تأكد إن الموديل مش موجود قبل ما تعمله
 exports.RoleModel = mongoose_1.default.models.Role || mongoose_1.default.model("Role", RoleSchema);

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchRoles = exports.toggleRoleStatus = exports.removeModulePermission = exports.addModulePermission = exports.deleteRole = exports.updateRole = exports.getRoleByName = exports.getRoleById = exports.getRoles = exports.createRole = exports.getAvailablePermissions = void 0;
-const permission_1 = require("../../models/shema/permission");
+const permission_1 = require("../../models/shema/permission"); // تأكد من المسار الصحيح
 const constant_1 = require("../../types/constant");
 const Errors_1 = require("../../Errors");
 const response_1 = require("../../utils/response");
@@ -42,6 +42,7 @@ const createRole = async (req, res) => {
     if (existingRole) {
         throw new BadRequest_1.BadRequest("Role with this name already exists");
     }
+    // هنا بيتم استدعاء دالة الفحص المعدلة
     const validatedPermissions = validatePermissions(permissions);
     const role = await permission_1.RoleModel.create({
         name: name.trim(),
@@ -141,6 +142,7 @@ const updateRole = async (req, res) => {
         role.description = description?.trim();
     }
     if (permissions && Array.isArray(permissions)) {
+        // استخدام الدالة المعدلة
         role.permissions = validatePermissions(permissions);
     }
     if (isActive !== undefined) {
@@ -196,7 +198,18 @@ const addModulePermission = async (req, res) => {
     if (!constant_1.MODULES.includes(module)) {
         throw new BadRequest_1.BadRequest(`Invalid module. Available: ${constant_1.MODULES.join(", ")}`);
     }
-    const validActions = actions.filter((a) => constant_1.ACTIONS.includes(a));
+    // --- بداية التعديل: التعامل مع الـ actions كـ Objects ---
+    const validActions = actions
+        .map((a) => {
+        // نتحقق لو اللي جاي string ولا object
+        const actionName = typeof a === 'string' ? a : a?.name;
+        if (constant_1.ACTIONS.includes(actionName)) {
+            return { name: actionName }; // بنرجع Object عشان الـ Schema
+        }
+        return null;
+    })
+        .filter((a) => a !== null);
+    // --- نهاية التعديل ---
     if (validActions.length === 0) {
         throw new BadRequest_1.BadRequest(`Invalid actions. Available: ${constant_1.ACTIONS.join(", ")}`);
     }
@@ -313,7 +326,7 @@ const searchRoles = async (req, res) => {
 };
 exports.searchRoles = searchRoles;
 // ----------------------------------------------------------
-// HELPER: Validate Permissions
+// HELPER: Validate Permissions (Updated)
 // ----------------------------------------------------------
 const validatePermissions = (permissions) => {
     return permissions.map((perm) => {
@@ -323,13 +336,24 @@ const validatePermissions = (permissions) => {
         if (!constant_1.MODULES.includes(perm.module)) {
             throw new BadRequest_1.BadRequest(`Invalid module: ${perm.module}. Available: ${constant_1.MODULES.join(", ")}`);
         }
-        const validActions = perm.actions.filter((a) => constant_1.ACTIONS.includes(a));
+        // --- بداية التعديل: التعامل مع Objects واستخراج الاسم ---
+        const validActions = perm.actions
+            .map((a) => {
+            // نتحقق لو اللي جاي string ولا object
+            const actionName = typeof a === 'string' ? a : a?.name;
+            if (constant_1.ACTIONS.includes(actionName)) {
+                return { name: actionName }; // بنرجع Object عشان الـ Schema
+            }
+            return null;
+        })
+            .filter((a) => a !== null);
+        // --- نهاية التعديل ---
         if (validActions.length === 0) {
             throw new BadRequest_1.BadRequest(`Invalid actions for ${perm.module}. Available: ${constant_1.ACTIONS.join(", ")}`);
         }
         return {
             module: perm.module,
-            actions: validActions
+            actions: validActions // دي دلوقتي Array of Objects
         };
     });
 };

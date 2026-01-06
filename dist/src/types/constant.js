@@ -15,6 +15,7 @@ exports.MODULES = [
     "levels",
     "notifications",
     "chats",
+    "admins",
     "rooms",
     "roles"
 ];

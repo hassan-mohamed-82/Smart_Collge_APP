@@ -9,29 +9,29 @@ const checkPermission = (module, action) => {
             if (!req.user) {
                 throw new unauthorizedError_1.UnauthorizedError("Authentication required");
             }
-            const user = req.user;
-            // Super Admin has all permissions
-            if (user.isSuperAdmin === true) {
+            // SuperAdmin يعدي دايمًا
+            if (req.user.roles === "SuperAdmin") {
                 return next();
             }
-            // Check if user has role
-            if (!user.role) {
+            // لازم يكون أدمن
+            if (req.user.userType !== "Admin") {
+                throw new unauthorizedError_1.UnauthorizedError("Admin access required");
+            }
+            // لازم يكون عنده roleId
+            if (!req.user.roleId) {
                 throw new unauthorizedError_1.UnauthorizedError("No role assigned to user");
             }
-            // Get role with permissions
-            const role = await permission_1.RoleModel.findById(user.role);
+            const role = await permission_1.RoleModel.findById(req.user.roleId);
             if (!role) {
                 throw new unauthorizedError_1.UnauthorizedError("Role not found");
             }
             if (!role.isActive) {
                 throw new unauthorizedError_1.UnauthorizedError("Role is deactivated");
             }
-            // Find module permission
             const modulePermission = role.permissions.find((p) => p.module === module);
             if (!modulePermission) {
                 throw new unauthorizedError_1.UnauthorizedError(`No access to ${module}`);
             }
-            // Check if user has the required action
             const hasPermission = modulePermission.actions.includes("manage") ||
                 modulePermission.actions.includes(action);
             if (!hasPermission) {
@@ -45,21 +45,19 @@ const checkPermission = (module, action) => {
     };
 };
 exports.checkPermission = checkPermission;
-// Check multiple permissions (any of them)
 const checkAnyPermission = (permissions) => {
     return async (req, res, next) => {
         try {
             if (!req.user) {
                 throw new unauthorizedError_1.UnauthorizedError("Authentication required");
             }
-            const user = req.user;
-            if (user.isSuperAdmin === true) {
+            if (req.user.roles === "SuperAdmin") {
                 return next();
             }
-            if (!user.role) {
+            if (req.user.userType !== "Admin" || !req.user.roleId) {
                 throw new unauthorizedError_1.UnauthorizedError("No role assigned to user");
             }
-            const role = await permission_1.RoleModel.findById(user.role);
+            const role = await permission_1.RoleModel.findById(req.user.roleId);
             if (!role || !role.isActive) {
                 throw new unauthorizedError_1.UnauthorizedError("Invalid or inactive role");
             }
@@ -67,7 +65,8 @@ const checkAnyPermission = (permissions) => {
                 const modulePermission = role.permissions.find((p) => p.module === module);
                 if (!modulePermission)
                     return false;
-                return modulePermission.actions.includes("manage") || modulePermission.actions.includes(action);
+                return (modulePermission.actions.includes("manage") ||
+                    modulePermission.actions.includes(action));
             });
             if (!hasAnyPermission) {
                 throw new unauthorizedError_1.UnauthorizedError("Insufficient permissions");

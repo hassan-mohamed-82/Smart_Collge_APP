@@ -1,68 +1,41 @@
-import { NextFunction, Request, Response, RequestHandler } from "express";
+// middlewares/authorizeRoles.ts
+import { NextFunction, Response, RequestHandler, Request } from "express";
 import { UnauthorizedError } from "../Errors/unauthorizedError";
-import { RoleModel } from "../models/shema/auth/Admin";
-import { AuthenticatedRequest } from "../types/custom"; // خلي النوع في ملف types
+
+type AllowedRole = "SuperAdmin" | "Admin" | "Student" | "Graduated";
 
 /**
- * @param requiredRole اسم الدور المطلوب (زي: "NewsManager", "Editor")
- * @param requiredActions الصلاحيات المطلوبة (زي: "create", "update")
+ * التحقق من نوع اليوزر
+ * 
+ * استخدام:
+ * authorizeRoles("SuperAdmin", "Admin")
+ * authorizeRoles("Student")
+ * authorizeRoles("Student", "Graduated")
  */
-export const authorizeRoles = (
-  requiredRole: string,
-  ...requiredActions: string[]
-): RequestHandler => {
-  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      if (!req.user) {
-        return next(new UnauthorizedError("User not authenticated"));
-      }
+export const authorizeRoles = (...allowedRoles: AllowedRole[]): RequestHandler => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.user) {
+                return next(new UnauthorizedError("User not authenticated"));
+            }
 
-      // ✅ 1- SuperAdmin يعدي دايمًا
-      if (req.user.role === "SuperAdmin") {
-        return next();
-      }
+            // حدد نوع اليوزر
+            let userRole: AllowedRole | undefined;
 
-      // ❌ 2- لو مش Admin ارفضه
-      if (req.user.role !== "Admin") {
-        return next(new UnauthorizedError("Access denied: Not an Admin"));
-      }
+            if (req.user.userType === "Admin") {
+                userRole = req.user.roles; // "SuperAdmin" | "Admin"
+            } else {
+                userRole = req.user.role; // "Student" | "Graduated"
+            }
 
-      // ✅ 3- Admin لازم يكون عنده roleId
-      if (!req.user.roleId) {
-        return next(new UnauthorizedError("Admin role not assigned"));
-      }
+            // شيك لو مسموحله
+            if (!userRole || !allowedRoles.includes(userRole)) {
+                return next(new UnauthorizedError("Access denied"));
+            }
 
-      // ✅ 4- هات الدور من DB + Populate actions
-      const role = await RoleModel.findById(req.user.roleId).populate("actionIds");
-      if (!role) {
-        return next(new UnauthorizedError("Role not found"));
-      }
-
-      // ❌ 5- شيك على اسم الدور
-      if (role.name !== requiredRole) {
-        return next(new UnauthorizedError(`Only ${requiredRole} role can access this`));
-      }
-
-      // ✅ 6- استخرج الـ actions من role
-      const userActions = role.actionIds.map(
-        (action: any) => action.name // هنا ممكن تعمل type للـ ActionModel
-      );
-
-      // ❌ 7- شيك على الصلاحيات المطلوبة
-      const hasPermission = requiredActions.every((action) =>
-        userActions.includes(action)
-      );
-
-      if (!hasPermission) {
-        return next(
-          new UnauthorizedError("You do not have the required permissions")
-        );
-      }
-
-      // ✅ 8- لو عدى كل حاجة → كمل
-      next();
-    } catch (err) {
-      next(err);
-    }
-  };
+            next();
+        } catch (err) {
+            next(err);
+        }
+    };
 };
