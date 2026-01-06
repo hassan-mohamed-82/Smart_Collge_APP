@@ -8,7 +8,7 @@ const joi_1 = __importDefault(require("joi"));
 exports.createTemplateSchema = joi_1.default.object({
     title: joi_1.default.string().required(),
     content: joi_1.default.string().required(),
-    category: joi_1.default.string().valid('Training', 'Diploma', ' Masters', 'Doctorate').required(),
+    category: joi_1.default.string().valid('Training', 'Diploma', 'Masters', 'Doctorate').required(),
     startdate: joi_1.default.date().default(Date.now).required(),
     enddate: joi_1.default.date(),
     companyname: joi_1.default.string(),

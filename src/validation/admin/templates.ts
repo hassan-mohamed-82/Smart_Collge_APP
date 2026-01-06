@@ -3,7 +3,7 @@ import Joi from "joi";
 export const createTemplateSchema = Joi.object({
     title: Joi.string().required(),
     content: Joi.string().required(),
-    category: Joi.string().valid('Training', 'Diploma', ' Masters','Doctorate').required(),
+    category: Joi.string().valid('Training', 'Diploma', 'Masters','Doctorate').required(),
     startdate: Joi.date().default(Date.now).required(),
     enddate: Joi.date(),
     companyname: Joi.string(),
