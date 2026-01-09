@@ -7,15 +7,22 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const response_1 = require("../../utils/response");
 const Errors_1 = require("../../Errors");
 const createNews = async (req, res) => {
-    const { title, content, type, event_link, event_date, images = [], // صور إضافية
-    optional = [], // ملفات إضافية (pdf, videos, ...)
-    mainImageBase64, mainImage, } = req.body;
+    const { title, content, type, event_link, event_date, images = [], optional = [], mainImageBase64, mainImage, } = req.body;
     if (!title || !content || !type)
         throw new BadRequest_1.BadRequest("title, content and type are required");
     // 🔹 حفظ الصورة الرئيسية
-    let finalMainImage = mainImage || "";
-    if (mainImageBase64) {
-        finalMainImage = await (0, handleImages_1.saveBase64Image)(mainImageBase64, "news", Date.now().toString());
+    let finalMainImage = "";
+    // ✅ الحل: تحقق من الاثنين
+    const imageToUpload = mainImageBase64 || mainImage;
+    if (imageToUpload) {
+        if (imageToUpload.startsWith("data:")) {
+            // لو base64 - ارفعها على Cloudinary
+            finalMainImage = await (0, handleImages_1.saveBase64Image)(imageToUpload, "news", Date.now().toString());
+        }
+        else {
+            // لو URL جاهز - استخدمه مباشرة
+            finalMainImage = imageToUpload;
+        }
     }
     if (!finalMainImage)
         throw new BadRequest_1.BadRequest("mainImage is required");

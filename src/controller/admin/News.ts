@@ -12,8 +12,8 @@ export const createNews = async (req: Request, res: Response) => {
     type,
     event_link,
     event_date,
-    images = [], // صور إضافية
-    optional = [], // ملفات إضافية (pdf, videos, ...)
+    images = [],
+    optional = [],
     mainImageBase64,
     mainImage,
   } = req.body;
@@ -22,13 +22,23 @@ export const createNews = async (req: Request, res: Response) => {
     throw new BadRequest("title, content and type are required");
 
   // 🔹 حفظ الصورة الرئيسية
-  let finalMainImage = mainImage || "";
-  if (mainImageBase64) {
-    finalMainImage = await saveBase64Image(
-      mainImageBase64,
-      "news",
-      Date.now().toString()
-    );
+  let finalMainImage = "";
+
+  // ✅ الحل: تحقق من الاثنين
+  const imageToUpload = mainImageBase64 || mainImage;
+
+  if (imageToUpload) {
+    if (imageToUpload.startsWith("data:")) {
+      // لو base64 - ارفعها على Cloudinary
+      finalMainImage = await saveBase64Image(
+        imageToUpload,
+        "news",
+        Date.now().toString()
+      );
+    } else {
+      // لو URL جاهز - استخدمه مباشرة
+      finalMainImage = imageToUpload;
+    }
   }
 
   if (!finalMainImage) throw new BadRequest("mainImage is required");
